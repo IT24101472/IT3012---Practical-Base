@@ -1,6 +1,8 @@
 # visual_grid_game.py
 import random
 import tkinter as tk
+from simple_reflex_agent import SimpleReflexAgent
+from model_based_agent import ModelBasedAgent
 
 
 class VisualGridHuntGame:
@@ -52,16 +54,38 @@ class VisualGridHuntGame:
         self.collision = False
 
     def get_percept(self) -> dict:
+        ##Fully overervable
+
+        # return {
+        #     'agent_pos': list(self.agent_pos),
+        #     'opponent_positions': [list(op) for op in self.opponents],
+        #     'smells_food': tuple(self.agent_pos) in self.food_positions,
+        #     'hit_wall': tuple(self.agent_pos) in self.walls,
+        #     'collision': self.collision,
+        #     'score': self.score,
+        #     'remaining_food': len(self.food_positions),
+        #     'smells_toxin': tuple(self.agent_pos) in self.toxic_traps
+        # }
+
+        ##Partially observable
+
+        x,y = agent_pos
+        dx, dy = getattr(self, 'facing_direction', (0, 1)) 
+        front_pos = (x + dx, y + dy)
+
         return {
-            'agent_pos': list(self.agent_pos),
-            'opponent_positions': [list(op) for op in self.opponents],
-            'smells_food': tuple(self.agent_pos) in self.food_positions,
-            'hit_wall': tuple(self.agent_pos) in self.walls,
-            'collision': self.collision,
-            'score': self.score,
-            'remaining_food': len(self.food_positions),
-            'smells_toxin': tuple(self.agent_pos) in self.toxic_traps
-        }
+        # LOCAL SENSORS (Only immediate surroundings)
+        'wall_ahead': front_pos in self.walls or not (0 <= front_pos[0] < self.grid_width and 0 <= front_pos[1] < self.grid_height),
+        'food_here': tuple(self.agent_pos) in self.food_positions,
+        'toxin_here': tuple(self.agent_pos) in self.toxic_traps,
+        'opponent_ahead': front_pos in self.opponents,
+        
+        # STATUS SENSORS (Local state indicators)
+        'hit_wall': tuple(self.agent_pos) in self.walls,
+        'collision': self.collision,
+        
+        # REMOVED: 'agent_pos' and 'opponent_positions' to enforce Partial Observability!
+    }
 
     def execute_action(self, action: str):
         self.steps += 1
@@ -170,7 +194,7 @@ class GridGameGUI:
                                          outline="#7a0000")
 
         # Draw each toxic trap as a purple shape
-        for (tx, ty) in self.toxic_traps:
+        for (tx, ty) in self.env.toxic_traps:
             x1 = tx * self.cell_size + 5
             y1 = ty * self.cell_size + 5
             x2 = (tx + 1) * self.cell_size - 5
@@ -206,7 +230,9 @@ class GridGameGUI:
 
 
 if __name__ == "__main__":
+    agent = ModelBasedAgent()
     root = tk.Tk()
     # Try a larger grid size like 12x12 with 15 food and 3 opponents!
     app = GridGameGUI(root, width=12, height=12, num_food=15, num_opponents=0)
+    app.env.agent = agent
     root.mainloop()
