@@ -93,6 +93,66 @@ class SearchAgent:
 
         return []
 
+    def dfs_search(self, start, goal, grid_size=None, walls=None):
+        """
+        Finds a path from start to goal using Depth-First Search (DFS).
+        
+        Args:
+            start: tuple or list (x, y) starting coordinate.
+            goal: tuple or list (x, y) target coordinate.
+            grid_size: tuple (width, height) or walls list if passed positionally.
+            walls: collection of (x, y) wall coordinates or grid_size if passed positionally.
+            
+        Returns:
+            list of action strings (e.g. ['Up', 'Right', ...]) leading to the goal,
+            or [] if no path is found or start == goal.
+        """
+        # Support both positional orders: (start, goal, grid_size, walls) and (start, goal, walls, grid_size)
+        if isinstance(grid_size, (list, set)) and isinstance(walls, tuple) and len(walls) == 2:
+            walls, grid_size = grid_size, walls
+        elif isinstance(walls, (tuple, list)) and len(walls) == 2 and isinstance(grid_size, (list, set)):
+            walls, grid_size = grid_size, walls
+
+        start = tuple(start)
+        goal = tuple(goal)
+        walls_set = {tuple(w) for w in (walls or [])}
+        width, height = grid_size
+
+        if start == goal:
+            return []
+
+        # LIFO stack storing tuples of (current_position, action_sequence_so_far)
+        frontier = [(start, [])]
+        # Set of reached positions to prevent cycles and re-exploration
+        reached = {start}
+
+        # Coordinate transitions for grid movement matching visual_grid_game.py:
+        # 'Up': y + 1, 'Down': y - 1, 'Left': x - 1, 'Right': x + 1
+        moves = [
+            ('Up', 0, 1),
+            ('Down', 0, -1),
+            ('Left', -1, 0),
+            ('Right', 1, 0)
+        ]
+
+        while frontier:
+            current, path = frontier.pop()
+
+            if current == goal:
+                return path
+
+            for action, dx, dy in moves:
+                next_pos = (current[0] + dx, current[1] + dy)
+
+                # Boundary checking: ensure within valid grid dimensions
+                if 0 <= next_pos[0] < width and 0 <= next_pos[1] < height:
+                    # Ignore walls and already reached states
+                    if next_pos not in walls_set and next_pos not in reached:
+                        reached.add(next_pos)
+                        frontier.append((next_pos, path + [action]))
+
+        return []
+
     def sense_and_act(self, percept: dict) -> str:
         """Minimal execution method to follow an offline plan."""
         if self.plan:
