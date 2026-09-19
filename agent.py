@@ -1,4 +1,5 @@
 import heapq
+import math
 import random
 from collections import deque
 
@@ -33,6 +34,20 @@ class SearchAgent:
         self.plan = []
         self.active_algo = 'BFS'
         self.current_pos = (0, 0)
+
+    def manhattan_distance(self, pos, goal):
+        """
+        Calculates the Manhattan distance heuristic h(n) = |x1 - x2| + |y1 - y2|.
+        """
+        return abs(pos[0] - goal[0]) + abs(pos[1] - goal[1])
+
+    def euclidean_distance(self, pos, goal):
+        """
+        Calculates the Euclidean distance heuristic h(n) = sqrt((x1 - x2)^2 + (y1 - y2)^2).
+        """
+        dx = pos[0] - goal[0]
+        dy = pos[1] - goal[1]
+        return math.sqrt(dx ** 2 + dy ** 2)
 
     def bfs_search(self, start, goal, grid_size=None, walls=None):
         """
