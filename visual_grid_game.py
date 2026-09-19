@@ -69,23 +69,28 @@ class VisualGridHuntGame:
 
         ##Partially observable
 
-        x,y = agent_pos
+        x, y = self.agent_pos
         dx, dy = getattr(self, 'facing_direction', (0, 1)) 
         front_pos = (x + dx, y + dy)
 
         return {
-        # LOCAL SENSORS (Only immediate surroundings)
-        'wall_ahead': front_pos in self.walls or not (0 <= front_pos[0] < self.grid_width and 0 <= front_pos[1] < self.grid_height),
-        'food_here': tuple(self.agent_pos) in self.food_positions,
-        'toxin_here': tuple(self.agent_pos) in self.toxic_traps,
-        'opponent_ahead': front_pos in self.opponents,
-        
-        # STATUS SENSORS (Local state indicators)
-        'hit_wall': tuple(self.agent_pos) in self.walls,
-        'collision': self.collision,
-        
-        # REMOVED: 'agent_pos' and 'opponent_positions' to enforce Partial Observability!
-    }
+            # LOCAL SENSORS (Only immediate surroundings)
+            'wall_ahead': front_pos in self.walls or not (0 <= front_pos[0] < self.width and 0 <= front_pos[1] < self.height),
+            'food_here': tuple(self.agent_pos) in self.food_positions,
+            'toxin_here': tuple(self.agent_pos) in self.toxic_traps,
+            'opponent_ahead': front_pos in self.opponents,
+            
+            # STATUS SENSORS (Local state indicators)
+            'hit_wall': tuple(self.agent_pos) in self.walls,
+            'collision': self.collision,
+            
+            # REMOVED: 'agent_pos' and 'opponent_positions' to enforce Partial Observability!
+
+            # WORLD MODEL (Exposed for SearchAgent)
+            'grid_size': (self.width, self.height),
+            'walls': list(self.walls),
+            'all_food': list(self.food_positions)
+        }
 
     def execute_action(self, action: str):
         self.steps += 1
