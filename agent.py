@@ -239,6 +239,95 @@ class SearchAgent:
 
         return []
 
+    def astar_search(
+        self,
+        start_pos,
+        goal_pos,
+        walls,
+        grid_size,
+        heuristic_type='manhattan'
+    ):
+        """
+        Finds the shortest path from start_pos to goal_pos using A* Search with the given heuristic.
+        
+        Args:
+            start_pos: tuple or list (x, y) starting coordinate.
+            goal_pos: tuple or list (x, y) target coordinate.
+            walls: collection of (x, y) wall coordinates or grid_size if passed positionally.
+            grid_size: tuple (width, height) or walls list if passed positionally.
+            heuristic_type: 'manhattan' (default) or 'euclidean'.
+            
+        Returns:
+            list of action strings (e.g. ['Up', 'Right', ...]) leading to the goal,
+            or [] if no path is found or start_pos == goal_pos.
+        """
+        # Support both positional orders: (start, goal, walls, grid_size) and (start, goal, grid_size, walls)
+        if isinstance(walls, tuple) and len(walls) == 2 and isinstance(grid_size, (list, set)):
+            walls, grid_size = grid_size, walls
+        elif isinstance(grid_size, (list, set)) and isinstance(walls, tuple) and len(walls) == 2:
+            walls, grid_size = grid_size, walls
+
+        # Select heuristic function
+        if heuristic_type == 'manhattan':
+            h_func = self.manhattan_distance
+        elif heuristic_type == 'euclidean':
+            h_func = self.euclidean_distance
+        else:
+            raise ValueError(f"Unknown heuristic_type: '{heuristic_type}'. Supported heuristics are 'manhattan' and 'euclidean'.")
+
+        start = tuple(start_pos)
+        goal = tuple(goal_pos)
+        walls_set = {tuple(w) for w in (walls or [])}
+        width, height = grid_size
+
+        if start == goal:
+            return []
+
+        # Priority queue storing tuples: (f_score, entry_count, g_score, current_position, path)
+        # f(n) = g(n) + h(n)
+        entry_count = 0
+        h_start = h_func(start, goal)
+        frontier = [(h_start, entry_count, 0, start, [])]
+        # Maps reached positions to their lowest known g(n) path cost
+        cost_so_far = {start: 0}
+
+        # Coordinate transitions for grid movement matching visual_grid_game.py:
+        # 'Up': y + 1, 'Down': y - 1, 'Left': x - 1, 'Right': x + 1
+        moves = [
+            ('Up', 0, 1),
+            ('Down', 0, -1),
+            ('Left', -1, 0),
+            ('Right', 1, 0)
+        ]
+
+        while frontier:
+            f_score, _, g_score, current, path = heapq.heappop(frontier)
+
+            # Goal test upon expansion guarantees optimality with admissible heuristics
+            if current == goal:
+                return path
+
+            # Skip if a lower cost path to current has already been explored
+            if g_score > cost_so_far.get(current, float('inf')):
+                continue
+
+            for action, dx, dy in moves:
+                next_pos = (current[0] + dx, current[1] + dy)
+
+                # Boundary checking: ensure within valid grid dimensions
+                if 0 <= next_pos[0] < width and 0 <= next_pos[1] < height:
+                    # Ignore walls
+                    if next_pos not in walls_set:
+                        new_g = g_score + 1  # Uniform step cost = 1
+                        if next_pos not in cost_so_far or new_g < cost_so_far[next_pos]:
+                            cost_so_far[next_pos] = new_g
+                            new_h = h_func(next_pos, goal)
+                            new_f = new_g + new_h
+                            entry_count += 1
+                            heapq.heappush(frontier, (new_f, entry_count, new_g, next_pos, path + [action]))
+
+        return []
+
     def sense_and_act(self, percept: dict) -> str:
         """
         Step 1.3: Executes offline plans towards food pellets using the configured search algorithm.
