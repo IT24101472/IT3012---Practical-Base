@@ -32,6 +32,7 @@ class SearchAgent:
     def __init__(self):
         self.plan = []
         self.active_algo = 'BFS'
+        self.current_pos = (0, 0)
 
     def bfs_search(self, start, goal, grid_size=None, walls=None):
         """
@@ -224,7 +225,56 @@ class SearchAgent:
         return []
 
     def sense_and_act(self, percept: dict) -> str:
-        """Minimal execution method to follow an offline plan."""
-        if self.plan:
-            return self.plan.pop(0)
-        return 'Stay'
+        """
+        Step 1.3: Executes offline plans towards food pellets using the configured search algorithm.
+        Re-plans whenever the current plan is exhausted until all food is collected.
+        """
+        if 'agent_pos' in percept:
+            self.current_pos = tuple(percept['agent_pos'])
+
+        # If current plan is exhausted, compute a new offline plan
+        if not self.plan:
+            all_food = percept.get('all_food', [])
+            if not all_food:
+                return 'Stay'
+
+            grid_size = percept.get('grid_size')
+            walls = percept.get('walls', [])
+
+            # Target food selection: sort available food by Manhattan distance to self.current_pos
+            sorted_food = sorted(
+                all_food,
+                key=lambda f: abs(self.current_pos[0] - f[0]) + abs(self.current_pos[1] - f[1])
+            )
+
+            for target in sorted_food:
+                target = tuple(target)
+                if self.current_pos == target:
+                    continue
+
+                if self.active_algo == 'BFS':
+                    plan = self.bfs_search(self.current_pos, target, grid_size, walls)
+                elif self.active_algo == 'DFS':
+                    plan = self.dfs_search(self.current_pos, target, grid_size, walls)
+                elif self.active_algo == 'UCS':
+                    plan = self.ucs_search(self.current_pos, target, grid_size, walls)
+                else:
+                    plan = self.bfs_search(self.current_pos, target, grid_size, walls)
+
+                if plan:
+                    self.plan = plan
+                    break
+
+            # If no reachable food path exists, idle
+            if not self.plan:
+                return 'Stay'
+
+        # Execute next action in plan
+        action = self.plan.pop(0)
+
+        # Update tracked position internally
+        dx = 1 if action == 'Right' else (-1 if action == 'Left' else 0)
+        dy = 1 if action == 'Up' else (-1 if action == 'Down' else 0)
+        self.current_pos = (self.current_pos[0] + dx, self.current_pos[1] + dy)
+
+        return action

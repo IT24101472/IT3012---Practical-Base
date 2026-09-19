@@ -3,6 +3,7 @@ import random
 import tkinter as tk
 from simple_reflex_agent import SimpleReflexAgent
 from model_based_agent import ModelBasedAgent
+from agent import SearchAgent
 
 
 class VisualGridHuntGame:
@@ -87,6 +88,7 @@ class VisualGridHuntGame:
             # REMOVED: 'agent_pos' and 'opponent_positions' to enforce Partial Observability!
 
             # WORLD MODEL (Exposed for SearchAgent)
+            'agent_pos': list(self.agent_pos),
             'grid_size': (self.width, self.height),
             'walls': list(self.walls),
             'all_food': list(self.food_positions)
@@ -220,7 +222,10 @@ class GridGameGUI:
 
         def step():
             if not self.env.is_done():
-                action = random.choice(['Up', 'Down', 'Left', 'Right'])
+                if hasattr(self.env, 'agent') and self.env.agent:
+                    action = self.env.agent.sense_and_act(self.env.get_percept())
+                else:
+                    action = random.choice(['Up', 'Down', 'Left', 'Right'])
                 self.env.execute_action(action)
 
                 self.draw_grid()
@@ -235,9 +240,10 @@ class GridGameGUI:
 
 
 if __name__ == "__main__":
-    agent = ModelBasedAgent()
+    agent = SearchAgent()
+    agent.active_algo = 'BFS'  # Set to 'BFS', 'DFS', or 'UCS'
     root = tk.Tk()
-    # Try a larger grid size like 12x12 with 15 food and 3 opponents!
+    # Try a larger grid size like 12x12 with 15 food and 0 opponents!
     app = GridGameGUI(root, width=12, height=12, num_food=15, num_opponents=0)
     app.env.agent = agent
     root.mainloop()
