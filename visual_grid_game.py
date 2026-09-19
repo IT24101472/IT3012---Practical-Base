@@ -241,7 +241,7 @@ class GridGameGUI:
 
 if __name__ == "__main__":
     agent = SearchAgent()
-    agent.active_algo = 'BFS'  # Set to 'BFS', 'DFS', or 'UCS'
+    agent.active_algo = 'AStar'  # Set to 'AStar', 'BFS', 'DFS', or 'UCS'
     root = tk.Tk()
     # Try a larger grid size like 12x12 with 15 food and 0 opponents!
     app = GridGameGUI(root, width=12, height=12, num_food=15, num_opponents=0)

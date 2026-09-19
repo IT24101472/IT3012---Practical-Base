@@ -32,7 +32,8 @@ class SearchAgent:
 
     def __init__(self):
         self.plan = []
-        self.active_algo = 'BFS'
+        self.active_algo = 'AStar'
+        self.heuristic_type = 'manhattan'
         self.current_pos = (0, 0)
 
     def manhattan_distance(self, pos, goal):
@@ -338,8 +339,8 @@ class SearchAgent:
 
         # If current plan is exhausted, compute a new offline plan
         if not self.plan:
-            all_food = percept.get('all_food', [])
-            if not all_food:
+            food_positions = percept.get('all_food') or percept.get('remaining_food') or []
+            if not food_positions:
                 return 'Stay'
 
             grid_size = percept.get('grid_size')
@@ -347,7 +348,7 @@ class SearchAgent:
 
             # Target food selection: sort available food by Manhattan distance to self.current_pos
             sorted_food = sorted(
-                all_food,
+                food_positions,
                 key=lambda f: abs(self.current_pos[0] - f[0]) + abs(self.current_pos[1] - f[1])
             )
 
@@ -362,11 +363,16 @@ class SearchAgent:
                     plan = self.dfs_search(self.current_pos, target, grid_size, walls)
                 elif self.active_algo == 'UCS':
                     plan = self.ucs_search(self.current_pos, target, grid_size, walls)
+                elif self.active_algo == 'AStar':
+                    plan = self.astar_search(self.current_pos, target, walls, grid_size, heuristic_type=self.heuristic_type)
                 else:
-                    plan = self.bfs_search(self.current_pos, target, grid_size, walls)
+                    plan = self.astar_search(self.current_pos, target, walls, grid_size, heuristic_type=self.heuristic_type)
 
                 if plan:
                     self.plan = plan
+                    if self.active_algo == 'AStar':
+                        h_name = self.heuristic_type.capitalize()
+                        print(f"Algorithm: AStar\nHeuristic: {h_name}\nStart: {self.current_pos}\nGoal: {target}\nPlan: {plan}\nPath length: {len(plan)}\n")
                     break
 
             # If no reachable food path exists, idle
